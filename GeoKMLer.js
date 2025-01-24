@@ -40,8 +40,11 @@ var GeoKMLer = (function() {
      * @param {string} kmlText - The KML text to parse.
      * @returns {Document} - The parsed XML document.
      */
-    geoKMLer.prototype.read = function(kmlText) {
-      return new DOMParser().parseFromString(kmlText, "application/xml");
+    GeoKMLer.prototype.read = function(kmlText) {
+      console.time('Parse KML'); // Start tracking time
+      const document = new DOMParser().parseFromString(kmlText, "application/xml");
+      console.timeEnd('Parse KML'); // End tracking and log time
+      return document;
     };
   
     /**
@@ -49,15 +52,18 @@ var GeoKMLer = (function() {
      * @param {Document} document - The KML document to convert.
      * @returns {Object} - The resulting GeoJSON FeatureCollection.
      */
-    geoKMLer.prototype.toGeoJSON = function(document) {
+    GeoKMLer.prototype.toGeoJSON = function(document) {
+      console.time('Convert KML to GeoJSON'); // Start tracking time
       const features = [];
       for (const placemark of document.getElementsByTagName("Placemark")) {
         features.push(...this.handlePlacemark(placemark));
       }
-      return {
+      const geoJson = {
         type: "FeatureCollection",
         features: features
       };
+      console.timeEnd('Convert KML to GeoJSON'); // End tracking and log time
+      return geoJson;
     };
   
     /**
@@ -65,12 +71,13 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The Placemark element to process.
      * @returns {Array} - An array of GeoJSON features.
      */
-    geoKMLer.prototype.handlePlacemark = function(placemark) {
+    GeoKMLer.prototype.handlePlacemark = function (placemark) {
       const features = [];
       const properties = this.extractProperties(placemark);
       properties.extendedData = this.extractExtendedData(placemark);
     
-      for (const element of placemark.children) {
+      for (let i = 0; i < placemark.children.length; i++) {
+        const element = placemark.children[i];
         switch (element.tagName) {
           case "Point":
             features.push(this.pointToPoint(element, placemark));
@@ -88,13 +95,13 @@ var GeoKMLer = (function() {
       }
       return features;
     };
-  
+
     /**
      * Converts coordinate strings into arrays of [longitude, latitude].
      * @param {string} coordString - The coordinate string from KML.
      * @returns {Array} - An array of [longitude, latitude] pairs.
      */
-    geoKMLer.prototype.coordFromString = function(coordString) {
+    GeoKMLer.prototype.coordFromString = function(coordString) {
       return coordString.trim().split(/\s+/).map(coord => {
         const [lon, lat] = coord.split(',').map(parseFloat);
         return [lon, lat];
@@ -106,7 +113,7 @@ var GeoKMLer = (function() {
      * @param {string} v - The coordinate string.
      * @returns {Array} - An array of parsed coordinate values.
      */
-    geoKMLer.prototype.coord1 = function(v) {
+    GeoKMLer.prototype.coord1 = function(v) {
       const removeSpace = /\s*/g;
       return v.replace(removeSpace, '').split(',').map(parseFloat);
     };
@@ -116,7 +123,7 @@ var GeoKMLer = (function() {
      * @param {string} v - The coordinate string with multiple coordinates.
      * @returns {Array} - A nested array of parsed coordinate values.
      */
-    geoKMLer.prototype.coord = function(v) {
+    GeoKMLer.prototype.coord = function(v) {
       const trimSpace = /^\s*|\s*$/g;
       const splitSpace = /\s+/;
       const coords = v.replace(trimSpace, '').split(splitSpace);
@@ -128,7 +135,7 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The Placemark element to extract from.
      * @returns {Object} - An object containing extended data properties.
      */
-    geoKMLer.prototype.extractExtendedData = function(placemark) {
+    GeoKMLer.prototype.extractExtendedData = function(placemark) {
       const extendedDataTag = this.getChildNode(placemark, 'ExtendedData');
       if (!extendedDataTag) return {};
   
@@ -152,7 +159,7 @@ var GeoKMLer = (function() {
      * @param {Node} x - The node to extract the value from.
      * @returns {string} - The text content of the node.
      */
-    geoKMLer.prototype.nodeVal = function(x) {
+    GeoKMLer.prototype.nodeVal = function(x) {
       return x ? (x.textContent || '') : '';
     };
   
@@ -162,7 +169,7 @@ var GeoKMLer = (function() {
      * @param {string} y - The tag name of the child node.
      * @returns {Element|null} - The first matching child node or null if none are found.
      */
-    geoKMLer.prototype.getChildNode = function(x, y) {
+    GeoKMLer.prototype.getChildNode = function(x, y) {
       const nodeList = x.getElementsByTagName(y);
       return nodeList.length ? nodeList[0] : null;
     };
@@ -173,7 +180,7 @@ var GeoKMLer = (function() {
      * @param {string} y - The tag name of the child nodes.
      * @returns {Array} - An array of matching child nodes.
      */
-    geoKMLer.prototype.getChildNodes = function(x, y) {
+    GeoKMLer.prototype.getChildNodes = function(x, y) {
       return Array.from(x.getElementsByTagName(y));
     };
   
@@ -183,7 +190,7 @@ var GeoKMLer = (function() {
      * @param {string} y - The name of the attribute.
      * @returns {string|null} - The attribute value or null if not present.
      */
-    geoKMLer.prototype.attr = function(x, y) {
+    GeoKMLer.prototype.attr = function(x, y) {
       return x.getAttribute(y);
     };
   
@@ -193,7 +200,7 @@ var GeoKMLer = (function() {
      * @param {string} y - The name of the attribute.
      * @returns {number} - The parsed floating-point attribute value.
      */
-    geoKMLer.prototype.attrf = function(x, y) {
+    GeoKMLer.prototype.attrf = function(x, y) {
       return parseFloat(this.attr(x, y));
     };
   
@@ -202,7 +209,7 @@ var GeoKMLer = (function() {
      * @param {Node} el - The XML node to normalize.
      * @returns {Node} - The normalized node.
      */
-    geoKMLer.prototype.norm = function(el) {
+    GeoKMLer.prototype.norm = function(el) {
       if (el.normalize) el.normalize();
       return el;
     };
@@ -214,7 +221,7 @@ var GeoKMLer = (function() {
      * @param {Object} props - The properties of the feature.
      * @returns {Object} - The created GeoJSON feature.
      */
-    geoKMLer.prototype.makeFeature = function(type, coords, props) {
+    GeoKMLer.prototype.makeFeature = function(type, coords, props) {
       return {
         type: "Feature",
         geometry: {
@@ -231,7 +238,7 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The parent Placemark element.
      * @returns {Object} - A GeoJSON Point feature.
      */
-    geoKMLer.prototype.pointToPoint = function(node, placemark) {
+    GeoKMLer.prototype.pointToPoint = function(node, placemark) {
       const coord = this.coordFromString(node.getElementsByTagName('coordinates')[0].textContent)[0];
       const props = this.extractProperties(placemark);
       return this.makeFeature("Point", coord, props);
@@ -243,7 +250,7 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The parent Placemark element.
      * @returns {Object} - A GeoJSON LineString feature.
      */
-    geoKMLer.prototype.lineStringToLineString = function(node, placemark) {
+    GeoKMLer.prototype.lineStringToLineString = function(node, placemark) {
       const coords = this.coordFromString(node.getElementsByTagName('coordinates')[0].textContent);
       const props = this.extractProperties(placemark);
       return this.makeFeature("LineString", coords, props);
@@ -255,7 +262,7 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The parent Placemark element.
      * @returns {Object} - A GeoJSON Polygon feature.
      */
-    geoKMLer.prototype.polygonToPolygon = function(node, placemark) {
+    GeoKMLer.prototype.polygonToPolygon = function(node, placemark) {
       const coords = [];
       for (const boundary of node.getElementsByTagName('LinearRing')) {
         coords.push(this.coordFromString(boundary.getElementsByTagName('coordinates')[0].textContent));
@@ -270,7 +277,7 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The parent Placemark element.
      * @returns {Array} - An array of GeoJSON features.
      */
-    geoKMLer.prototype.handleMultiGeometry = function(node, placemark) {
+    GeoKMLer.prototype.handleMultiGeometry = function(node, placemark) {
       const features = [];
       for (const element of node.children) {
         switch (element.tagName) {
@@ -296,16 +303,16 @@ var GeoKMLer = (function() {
      * @param {Element} placemark - The Placemark element to extract properties from.
      * @returns {Object} - An object containing placemark properties.
      */
-    geoKMLer.prototype.extractProperties = function(placemark) {
+    GeoKMLer.prototype.extractProperties = function(placemark) {
       const props = {};
       for (const n of placemark.children) {
-        if (!["Point", "LineString", "Polygon", "MultiGeometry", "LinearRing"].includes(n.tagName)) {
+        if (!["Point", "LineString", "Polygon", "MultiGeometry", "LinearRing", "Style", "StyleMap"].includes(n.tagName)) {
           props[n.tagName] = n.textContent;
         }
       }
       return props;
     };
   
-    return geoKMLer;
+    return GeoKMLer;
   })();
   
