@@ -41,9 +41,9 @@ var GeoKMLer = (function() {
      * @returns {Document} - The parsed XML document.
      */
     GeoKMLer.prototype.read = function(kmlText) {
-      console.time('Parse KML'); // Start tracking time
+      //console.time('Parse KML'); // Start tracking time
       const document = new DOMParser().parseFromString(kmlText, "application/xml");
-      console.timeEnd('Parse KML'); // End tracking and log time
+      //console.timeEnd('Parse KML'); // End tracking and log time
       return document;
     };
   
@@ -53,7 +53,7 @@ var GeoKMLer = (function() {
      * @returns {Object} - The resulting GeoJSON FeatureCollection.
      */
     GeoKMLer.prototype.toGeoJSON = function(document) {
-      console.time('Convert KML to GeoJSON'); // Start tracking time
+      //console.time('Convert KML to GeoJSON'); // Start tracking time
       const features = [];
       for (const placemark of document.getElementsByTagName("Placemark")) {
         features.push(...this.handlePlacemark(placemark));
@@ -62,7 +62,7 @@ var GeoKMLer = (function() {
         type: "FeatureCollection",
         features: features
       };
-      console.timeEnd('Convert KML to GeoJSON'); // End tracking and log time
+      //console.timeEnd('Convert KML to GeoJSON'); // End tracking and log time
       return geoJson;
     };
   
