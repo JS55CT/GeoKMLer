@@ -2,28 +2,44 @@
 // @name                GeoKMLer
 // @namespace           https://github.com/JS55CT
 // @description         geoKMLer is a JavaScript library designed to convert KML data into GeoJSON format efficiently. It supports conversion of Placemarks containing Point, LineString, Polygon, and MultiGeometry elements.
-// @version             2.0.0
+// @version             2.1.0
 // @author              JS55CT
-// @license             GNU GPLv3
+// @license             MIT
 // @match              *://this-library-is-not-supposed-to-run.com/*
 // ==/UserScript==
 
+/* TO DO:  add support for Z! and TEST TEST TEST
+GeoKMLer.prototype.coordFromString = function(coordString) {
+  return coordString.trim().split(/\s+/).map(coord => {
+    const [lon, lat, ele] = coord.split(',').map(parseFloat);
+    return [lon, lat, ele]; // Include ele for elevation
+  });
+};
 
+*/
 /***********************************************************
  * ## Project Home < https://github.com/JS55CT/GeoKMLer >
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
+ *  MIT License
+ * Copyright (c) 2022 hu de yi
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  **************************************************************/
-var GeoKMLer = (function() {
-
+var GeoKMLer = (function () {
   /**
    * GeoKMLer constructor function.
    * @param {Object} obj - Optional object to wrap.
@@ -40,9 +56,28 @@ var GeoKMLer = (function() {
    * @param {string} kmlText - The KML text to parse.
    * @returns {Document} - The parsed XML document.
    */
-  GeoKMLer.prototype.read = function(kmlText) {
-    const document = new DOMParser().parseFromString(kmlText, "application/xml");
-    return document;
+  GeoKMLer.prototype.read = function (kmlText) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(kmlText, "application/xml");
+
+    // Check for parsing errors by looking for parser error tags
+    const parseErrors = xmlDoc.getElementsByTagName("parsererror");
+    if (parseErrors.length > 0) {
+      // If there are parsing errors, log them and throw an error
+      const errorMessages = Array.from(parseErrors)
+        .map((errorElement, index) => {
+          return `Parsing Error ${index + 1}: ${errorElement.textContent}`;
+        })
+        .join("\n");
+
+      console.error(errorMessages);
+
+      // Throw an error to indicate parsing failure
+      throw new Error("Failed to parse KML. See console for details.");
+    }
+
+    // If parsing is successful, return the parsed XML document
+    return xmlDoc;
   };
 
   /**
@@ -50,14 +85,14 @@ var GeoKMLer = (function() {
    * @param {Document} document - The KML document to convert.
    * @returns {Object} - The resulting GeoJSON FeatureCollection.
    */
-  GeoKMLer.prototype.toGeoJSON = function(document) {
+  GeoKMLer.prototype.toGeoJSON = function (document) {
     const features = [];
     for (const placemark of document.getElementsByTagName("Placemark")) {
       features.push(...this.handlePlacemark(placemark));
     }
     return {
       type: "FeatureCollection",
-      features: features
+      features: features,
     };
   };
 
@@ -66,12 +101,12 @@ var GeoKMLer = (function() {
    * @param {Element} placemark - The Placemark element to process.
    * @returns {Array} - An array of GeoJSON features.
    */
-  GeoKMLer.prototype.handlePlacemark = function(placemark) {
+  GeoKMLer.prototype.handlePlacemark = function (placemark) {
     const features = [];
     const properties = this.extractProperties(placemark);
     // Merge extended data directly into the properties without an additional 'ExtendedData' entry
     Object.assign(properties, this.extractExtendedData(placemark));
-  
+
     for (let i = 0; i < placemark.children.length; i++) {
       const element = placemark.children[i];
       switch (element.tagName) {
@@ -97,11 +132,14 @@ var GeoKMLer = (function() {
    * @param {string} coordString - The coordinate string from KML.
    * @returns {Array} - An array of [longitude, latitude] pairs.
    */
-  GeoKMLer.prototype.coordFromString = function(coordString) {
-    return coordString.trim().split(/\s+/).map(coord => {
-      const [lon, lat] = coord.split(',').map(parseFloat);
-      return [lon, lat];
-    });
+  GeoKMLer.prototype.coordFromString = function (coordString) {
+    return coordString
+      .trim()
+      .split(/\s+/)
+      .map((coord) => {
+        const [lon, lat] = coord.split(",").map(parseFloat);
+        return [lon, lat];
+      });
   };
 
   /**
@@ -109,9 +147,9 @@ var GeoKMLer = (function() {
    * @param {string} v - The coordinate string.
    * @returns {Array} - An array of parsed coordinate values.
    */
-  GeoKMLer.prototype.coord1 = function(v) {
+  GeoKMLer.prototype.coord1 = function (v) {
     const removeSpace = /\s*/g;
-    return v.replace(removeSpace, '').split(',').map(parseFloat);
+    return v.replace(removeSpace, "").split(",").map(parseFloat);
   };
 
   /**
@@ -119,11 +157,11 @@ var GeoKMLer = (function() {
    * @param {string} v - The coordinate string with multiple coordinates.
    * @returns {Array} - A nested array of parsed coordinate values.
    */
-  GeoKMLer.prototype.coord = function(v) {
+  GeoKMLer.prototype.coord = function (v) {
     const trimSpace = /^\s*|\s*$/g;
     const splitSpace = /\s+/;
-    const coords = v.replace(trimSpace, '').split(splitSpace);
-    return coords.map(coord => this.coord1(coord));
+    const coords = v.replace(trimSpace, "").split(splitSpace);
+    return coords.map((coord) => this.coord1(coord));
   };
 
   /**
@@ -131,31 +169,30 @@ var GeoKMLer = (function() {
    * @param {Element} placemark - The Placemark element to extract from.
    * @returns {Object} - An object containing extended data properties.
    */
-  GeoKMLer.prototype.extractExtendedData = function(placemark) {
+  GeoKMLer.prototype.extractExtendedData = function (placemark) {
     const extendedData = {};
-    const extendedDataTag = this.getChildNode(placemark, 'ExtendedData');
+    const extendedDataTag = this.getChildNode(placemark, "ExtendedData");
     if (!extendedDataTag) return extendedData;
-  
-    const simpleDatas = this.getChildNodes(extendedDataTag, 'SimpleData');
-    simpleDatas.forEach(data => {
-      const name = data.getAttribute('name');
+
+    const simpleDatas = this.getChildNodes(extendedDataTag, "SimpleData");
+    simpleDatas.forEach((data) => {
+      const name = data.getAttribute("name");
       const value = this.nodeVal(data);
       if (name && value !== null) {
         extendedData[`ex_${name}`] = value.trim();
       }
     });
-  
+
     return extendedData;
   };
-  
 
   /**
    * Fetches the value of a text node.
    * @param {Node} x - The node to extract the value from.
    * @returns {string} - The text content of the node.
    */
-  GeoKMLer.prototype.nodeVal = function(x) {
-    return x ? x.textContent || '' : '';
+  GeoKMLer.prototype.nodeVal = function (x) {
+    return x ? x.textContent || "" : "";
   };
 
   /**
@@ -164,7 +201,7 @@ var GeoKMLer = (function() {
    * @param {string} y - The tag name of the child node.
    * @returns {Element|null} - The first matching child node or null if none are found.
    */
-  GeoKMLer.prototype.getChildNode = function(x, y) {
+  GeoKMLer.prototype.getChildNode = function (x, y) {
     const nodeList = x.getElementsByTagName(y);
     return nodeList.length ? nodeList[0] : null;
   };
@@ -175,7 +212,7 @@ var GeoKMLer = (function() {
    * @param {string} y - The tag name of the child nodes.
    * @returns {Array} - An array of matching child nodes.
    */
-  GeoKMLer.prototype.getChildNodes = function(x, y) {
+  GeoKMLer.prototype.getChildNodes = function (x, y) {
     return Array.from(x.getElementsByTagName(y));
   };
 
@@ -185,7 +222,7 @@ var GeoKMLer = (function() {
    * @param {string} y - The name of the attribute.
    * @returns {string|null} - The attribute value or null if not present.
    */
-  GeoKMLer.prototype.attr = function(x, y) {
+  GeoKMLer.prototype.attr = function (x, y) {
     return x.getAttribute(y);
   };
 
@@ -195,7 +232,7 @@ var GeoKMLer = (function() {
    * @param {string} y - The name of the attribute.
    * @returns {number} - The parsed floating-point attribute value.
    */
-  GeoKMLer.prototype.attrf = function(x, y) {
+  GeoKMLer.prototype.attrf = function (x, y) {
     return parseFloat(this.attr(x, y));
   };
 
@@ -204,7 +241,7 @@ var GeoKMLer = (function() {
    * @param {Node} el - The XML node to normalize.
    * @returns {Node} - The normalized node.
    */
-  GeoKMLer.prototype.norm = function(el) {
+  GeoKMLer.prototype.norm = function (el) {
     if (el.normalize) el.normalize();
     return el;
   };
@@ -216,14 +253,14 @@ var GeoKMLer = (function() {
    * @param {Object} props - The properties of the feature.
    * @returns {Object} - The created GeoJSON feature.
    */
-  GeoKMLer.prototype.makeFeature = function(type, coords, props) {
+  GeoKMLer.prototype.makeFeature = function (type, coords, props) {
     return {
       type: "Feature",
       geometry: {
         type: type,
-        coordinates: coords
+        coordinates: coords,
       },
-      properties: props
+      properties: props,
     };
   };
 
@@ -234,8 +271,8 @@ var GeoKMLer = (function() {
    * @param {Object} props - The properties of the feature.
    * @returns {Object} - A GeoJSON Point feature.
    */
-  GeoKMLer.prototype.pointToPoint = function(node, placemark, props) {
-    const coord = this.coordFromString(node.getElementsByTagName('coordinates')[0].textContent)[0];
+  GeoKMLer.prototype.pointToPoint = function (node, placemark, props) {
+    const coord = this.coordFromString(node.getElementsByTagName("coordinates")[0].textContent)[0];
     return this.makeFeature("Point", coord, props);
   };
 
@@ -246,8 +283,8 @@ var GeoKMLer = (function() {
    * @param {Object} props - The properties of the feature.
    * @returns {Object} - A GeoJSON LineString feature.
    */
-  GeoKMLer.prototype.lineStringToLineString = function(node, placemark, props) {
-    const coords = this.coordFromString(node.getElementsByTagName('coordinates')[0].textContent);
+  GeoKMLer.prototype.lineStringToLineString = function (node, placemark, props) {
+    const coords = this.coordFromString(node.getElementsByTagName("coordinates")[0].textContent);
     return this.makeFeature("LineString", coords, props);
   };
 
@@ -258,10 +295,10 @@ var GeoKMLer = (function() {
    * @param {Object} props - The properties of the feature.
    * @returns {Object} - A GeoJSON Polygon feature.
    */
-  GeoKMLer.prototype.polygonToPolygon = function(node, placemark, props) {
+  GeoKMLer.prototype.polygonToPolygon = function (node, placemark, props) {
     const coords = [];
-    for (const boundary of node.getElementsByTagName('LinearRing')) {
-      coords.push(this.coordFromString(boundary.getElementsByTagName('coordinates')[0].textContent));
+    for (const boundary of node.getElementsByTagName("LinearRing")) {
+      coords.push(this.coordFromString(boundary.getElementsByTagName("coordinates")[0].textContent));
     }
     return this.makeFeature("Polygon", coords, props);
   };
@@ -273,7 +310,7 @@ var GeoKMLer = (function() {
    * @param {Object} props - The properties of the features.
    * @returns {Array} - An array of GeoJSON features.
    */
-  GeoKMLer.prototype.handleMultiGeometry = function(node, placemark, props) {
+  GeoKMLer.prototype.handleMultiGeometry = function (node, placemark, props) {
     const features = [];
     for (const element of node.children) {
       switch (element.tagName) {
@@ -299,7 +336,7 @@ var GeoKMLer = (function() {
    * @param {Element} placemark - The Placemark element to extract properties from.
    * @returns {Object} - An object containing placemark properties.
    */
-  GeoKMLer.prototype.extractProperties = function(placemark) {
+  GeoKMLer.prototype.extractProperties = function (placemark) {
     const props = {};
     for (const n of placemark.children) {
       if (!["Point", "LineString", "Polygon", "MultiGeometry", "LinearRing", "style", "styleMap", "styleUrl", "TimeSpan", "TimeStamp"].includes(n.tagName)) {

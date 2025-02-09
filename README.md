@@ -4,7 +4,7 @@ GeoKMLer is a JavaScript library designed to convert KML data into GeoJSON forma
 
 ## License
 
-This project is free software licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for more details.
+This project is free software licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ## Overview
 
