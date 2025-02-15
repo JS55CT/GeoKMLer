@@ -20,17 +20,17 @@ GeoKMLer.prototype.coordFromString = function(coordString) {
 /***********************************************************
  * ## Project Home < https://github.com/JS55CT/GeoKMLer >
  *  MIT License
- * Copyright (c) 2022 hu de yi
+ * Copyright (c) 2025 Justin
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -83,17 +83,49 @@ var GeoKMLer = (function () {
   /**
    * Converts a KML document to a GeoJSON FeatureCollection.
    * @param {Document} document - The KML document to convert.
+   * @param {boolean} includeCrs - Optional boolean to determine if CRS should be included.
    * @returns {Object} - The resulting GeoJSON FeatureCollection.
+   *
+   * NOTE:
+   * KML files inherently assume the use of the EPSG:4326 (WGS 84) coordinate reference system
+   * for all geographic coordinates. As such, when converting from KML to GeoJSON, the coordinates
+   * are retained in the standard WGS 84 format.
+   *
+   * The GeoJSON output will conform to this CRS standard, and no additional CRS transformation are needed.
+   * Users can rely on the spatial information being accurate with respect to the WGS 84 datum.
+   *
+   * Additionally, this function includes an option to add CRS information explicitly to the GeoJSON output (none standard).
+   * By setting the `includeCrs` parameter to `true`, the resulting GeoJSON will include a 'crs' property
+   * that specifies the use of EPSG:4326:  the geoJSON standard.
+   *
+   * crs: {
+   *   type: "name",
+   *   properties: {
+   *     name: "EPSG:4326",
+   *   },
+   * }
    */
-  GeoKMLer.prototype.toGeoJSON = function (document) {
+  GeoKMLer.prototype.toGeoJSON = function (document, includeCrs = false) {
     const features = [];
     for (const placemark of document.getElementsByTagName("Placemark")) {
       features.push(...this.handlePlacemark(placemark));
     }
-    return {
+
+    const geoJson = {
       type: "FeatureCollection",
       features: features,
     };
+
+    if (includeCrs) {
+      geoJson.crs = {
+        type: "name",
+        properties: {
+          name: "EPSG:4326",
+        },
+      };
+    }
+
+    return geoJson;
   };
 
   /**
