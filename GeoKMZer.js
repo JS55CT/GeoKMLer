@@ -2,7 +2,7 @@
 // @name                GeoKMZer
 // @namespace           https://github.com/JS55CT
 // @description         geoKMZer is a JavaScript library designed to convert KMZ into KML files, use with GeoKMLer to convert to GeoJSON.
-// @version             1.0.0
+// @version             1.1.0
 // @author              JS55CT
 // @license             MIT
 // @match              *://this-library-is-not-supposed-to-run.com/*
@@ -192,7 +192,6 @@ var GeoKMZer = (function () {
     const uint8Buffer = toUint8Array(buffer);
 
     for (const entry of this.parseZipEntries(uint8Buffer)) {
-      console.log(`Entry found in KMZ${parentFile ? " (from " + parentFile + ")" : ""}: ${entry.filename}`);
       if (kmlFileRegex.test(entry.filename)) {
         files[entry.filename] = await entry.read();
       } else if (kmzFileRegex.test(entry.filename)) {
@@ -204,9 +203,7 @@ var GeoKMZer = (function () {
         } catch (nestedError) {
           console.error(`Error reading nested KMZ file "${entry.filename}":`, nestedError);
         }
-      } else {
-        console.log(`Skipping non-KML file: ${entry.filename}`);
-      }
+      } 
     }
 
     if (Object.keys(files).length === 0) {
@@ -229,8 +226,6 @@ var GeoKMZer = (function () {
       const kmlContentsArray = [];
 
       for (const [kmlFilename, kmlBuffer] of Object.entries(kmlFiles)) {
-        console.log(`${scriptName}: Extracted .KML file from .KMZ: ${kmlFilename}`);
-
         const kmlContent = textDecoder.decode(kmlBuffer); // Decode the KML buffer to text
         kmlContentsArray.push({ filename: kmlFilename, content: kmlContent }); // Store each content with its filename
       }
