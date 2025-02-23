@@ -2,21 +2,12 @@
 // @name                GeoKMLer
 // @namespace           https://github.com/JS55CT
 // @description         geoKMLer is a JavaScript library designed to convert KML data into GeoJSON format efficiently. It supports conversion of Placemarks containing Point, LineString, Polygon, and MultiGeometry elements.
-// @version             2.1.0
+// @version             2.2.0
 // @author              JS55CT
 // @license             MIT
 // @match              *://this-library-is-not-supposed-to-run.com/*
 // ==/UserScript==
 
-/* TO DO:  add support for Z! and TEST TEST TEST
-GeoKMLer.prototype.coordFromString = function(coordString) {
-  return coordString.trim().split(/\s+/).map(coord => {
-    const [lon, lat, ele] = coord.split(',').map(parseFloat);
-    return [lon, lat, ele]; // Include ele for elevation
-  });
-};
-
-*/
 /***********************************************************
  * ## Project Home < https://github.com/JS55CT/GeoKMLer >
  *  MIT License
@@ -164,14 +155,11 @@ var GeoKMLer = (function () {
    * @param {string} coordString - The coordinate string from KML.
    * @returns {Array} - An array of [longitude, latitude] pairs.
    */
-  GeoKMLer.prototype.coordFromString = function (coordString) {
-    return coordString
-      .trim()
-      .split(/\s+/)
-      .map((coord) => {
-        const [lon, lat] = coord.split(",").map(parseFloat);
-        return [lon, lat];
-      });
+  GeoKMLer.prototype.coordFromString = function(coordString) {
+    return coordString.trim().split(/\s+/).map(coord => {
+      const [lon, lat, ele] = coord.split(',').map(parseFloat);
+      return [lon, lat, ele]; // Include ele for elevation
+    });
   };
 
   /**
